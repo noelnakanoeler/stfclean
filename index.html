@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>STF Clean | おそうじ見積り（ピクセル版）</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --ink:#0b0f14;
+      --bg:#f7f7ef;
+      --panel:#ffffff;
+      --blue:#1d4ed8; /* primary (deutan-friendly) */
+      --blue-2:#0b3ea8; /* darker border */
+      --gold:#fbbf24; /* accent */
+      --grid:#e6e2cc; /* pixel grid */
+      --focus:#1d4ed8;
+      --success:#22c55e;
+      --danger:#ef4444;
+    }
+    body.hc{
+      --bg:#ffffff; --panel:#ffffff;
+      --blue:#1438b8; --blue-2:#0b2a88;
+      --gold:#ffcc00; --grid:#e0e0e0;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background:
+        repeating-linear-gradient(0deg, var(--grid) 0 2px, transparent 2px 24px),
+        repeating-linear-gradient(90deg, var(--grid) 0 2px, transparent 2px 24px),
+        var(--bg);
+      color:var(--ink);
+      font-family:'Press Start 2P', monospace;
+      line-height:1.6; letter-spacing:.4px;
+    }
+    .wrap{ max-width:840px; margin:0 auto; padding:16px 12px 120px; }
+    .title{
+      display:flex; gap:8px; align-items:center; justify-content:center;
+      margin:16px 0 8px; font-size:18px; text-align:center;
+    }
+    .subtitle{ text-align:center; margin:0 0 12px; font-size:11px; opacity:.85;}
+    .tbar{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:16px; }
+    .btn{
+      appearance:none; border:none; background:var(--blue); color:#fff;
+      padding:14px 16px; border:3px solid var(--blue-2);
+      box-shadow:4px 4px 0 var(--blue-2);
+      font:inherit; font-size:12px; border-radius:8px; cursor:pointer;
+      transition:transform .02s ease-in;
+    }
+    .btn:active{ transform:translate(2px,2px); box-shadow:2px 2px 0 var(--blue-2); }
+    .btn.alt{ background:var(--gold); color:#000; border-color:#c58f00; box-shadow:4px 4px 0 #c58f00; }
+    .btn.success{ background:var(--success); border-color:#15803d; box-shadow:4px 4px 0 #15803d; }
+    .btn.danger{ background:var(--danger); border-color:#991b1b; box-shadow:4px 4px 0 #991b1b; }
+
+    .panel{ background:var(--panel); border:4px solid var(--ink); box-shadow:6px 6px 0 var(--ink); padding:14px; margin:16px 0; border-radius:12px; }
+    .section-title{ display:flex; align-items:center; gap:8px; margin:0 0 10px; font-size:14px; color:var(--blue-2); }
+
+    .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width:640px){ .grid{ grid-template-columns:1fr; } }
+
+    .card{ border:3px solid var(--blue-2); border-radius:12px; padding:10px; background:linear-gradient(0deg, rgba(255,255,255,.92), rgba(255,255,255,.92)), var(--panel); }
+    .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:8px; }
+    .label{ font-size:12px; }
+    .field{
+      display:flex; align-items:center; gap:8px;
+      padding:10px; border:2px dashed var(--blue-2); border-radius:10px; background:#fff;
+      min-height:48px;
+    }
+    input[type="number"], input[type="text"]{
+      font:inherit; font-size:12px; padding:10px;
+      border:2px solid var(--ink); border-radius:8px; width:120px;
+    }
+    input.wide{ width:100%; }
+    .radio-group{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+    @media (max-width:480px){ .radio-group{ grid-template-columns:repeat(2,1fr); } }
+    .radio{
+      background:#fff; border:2px solid var(--blue-2); border-radius:10px;
+      padding:10px; text-align:center; cursor:pointer; user-select:none;
+    }
+    .radio[aria-checked="true"]{ outline:3px dashed var(--focus); outline-offset:2px; background:#f3f7ff; }
+    .muted{ font-size:11px; opacity:.85; }
+    .right{ margin-left:auto; }
+
+    .estimate{ font-size:12px; }
+    .line{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px dashed #b7c3e3; }
+    .total{ font-size:16px; padding-top:10px; }
+
+    .copy{
+      width:100%;
+      padding:12px; border:2px solid var(--ink); border-radius:8px;
+      font:inherit; font-size:12px; min-height:90px; background:#fff;
+    }
+
+    /* modal */
+    .modal-backdrop{
+      position:fixed; inset:0; background:rgba(0,0,0,.35); display:none;
+      align-items:center; justify-content:center; padding:16px; z-index:20;
+    }
+    .modal{ max-width:560px; width:100%; background:#fff; border:4px solid var(--ink); box-shadow:8px 8px 0 var(--ink); border-radius:12px; padding:16px; }
+    .modal h3{ margin:0 0 8px; font-size:14px; color:var(--blue-2); }
+    .modal .row{ margin-top:6px; }
+    .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+
+    :focus-visible{ outline:3px dashed var(--focus); outline-offset:3px; }
+    @media (prefers-reduced-motion: reduce){ .btn, .btn:active{ transition:none; box-shadow:none; transform:none; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="title">🧼 STF Clean · おそうじ見積り</div>
+    <p class="subtitle">青×黄のやさしいピクセルUI。金額は <strong>税込・駐車場費込み</strong> の目安です。</p>
+
+    <div class="tbar">
+      <button class="btn" id="hcBtn" aria-pressed="false">視認性アップ</button>
+      <button class="btn alt" id="copyBtn">見積りテキストをコピー</button>
+      <button class="btn success" id="contactBtn">この内容で連絡する</button>
+    </div>
+
+    <!-- Cleaning Menu -->
+    <section class="panel" aria-labelledby="menuTitle">
+      <h2 id="menuTitle" class="section-title">🧾 クリーニングメニュー</h2>
+
+      <div class="grid">
+        <!-- Aircon -->
+        <div class="card">
+          <div class="section-title">❄️ エアコン掃除</div>
+          <div class="field row">
+            <span class="label">台数：</span>
+            <input type="number" id="acCount" min="0" step="1" value="0" />
+            <span class="muted">1台目 ¥11,000／同一物件の追加 ¥5,500</span>
+          </div>
+        </div>
+
+        <!-- Room cleaning -->
+        <div class="card">
+          <div class="section-title">🧹 部屋掃除（間取り）</div>
+          <div id="rooms" class="radio-group" role="radiogroup" aria-label="部屋タイプ">
+            <div class="radio" role="radio" tabindex="0" data-key="1R/1K" aria-checked="false">1R/1K<br><small>¥13,000</small></div>
+            <div class="radio" role="radio" tabindex="0" data-key="1DK" aria-checked="true">1DK<br><small>¥20,000</small></div>
+            <div class="radio" role="radio" tabindex="0" data-key="1LDK" aria-checked="false">1LDK<br><small>¥25,000</small></div>
+            <div class="radio" role="radio" tabindex="0" data-key="2LDK" aria-checked="false">2LDK<br><small>¥30,000</small></div>
+            <div class="radio" role="radio" tabindex="0" data-key="3LDK" aria-checked="false">3LDK<br><small>¥40,000</small></div>
+          </div>
+          <p class="muted" style="margin-top:8px;">※ 基本清掃の目安。汚れ具合やオプションにより変動する場合があります。</p>
+        </div>
+
+        <!-- Options -->
+        <div class="card">
+          <div class="section-title">✨ 追加オプション</div>
+          <div class="field row">
+            <span class="label">ワックス：</span>
+            <input type="number" id="waxArea" min="0" step="1" value="0" />
+            <span>m²</span>
+            <span class="muted">¥220／m²（最低 ¥1,650）</span>
+          </div>
+          <div class="field row">
+            <span class="label">網戸交換：</span>
+            <input type="number" id="screenCount" min="0" step="1" value="0" />
+            <span class="muted">¥2,200／枚</span>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="card">
+          <div class="section-title">📝 ご要望</div>
+          <input class="field wide" id="note" placeholder="例：水回り重点・ペットあり・日程の希望 など" />
+          <p class="muted">※ ここに書いた内容は見積り本文にも含まれます。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Estimate output -->
+    <section class="panel" aria-labelledby="estTitle">
+      <h2 id="estTitle" class="section-title">📋 見積り</h2>
+      <div id="estimate" class="estimate">
+        <!-- Filled by JS -->
+      </div>
+      <textarea id="copyText" class="copy" readonly aria-label="見積りテキスト"></textarea>
+    </section>
+  </div>
+
+  <!-- Contact Modal -->
+  <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal">
+      <h3>📩 この内容で連絡する</h3>
+      <div class="row">
+        <input id="custName" type="text" class="wide" placeholder="お名前（任意）" />
+      </div>
+      <div class="row">
+        <input id="custEmail" type="text" class="wide" placeholder="ご連絡先メール（任意）" />
+      </div>
+      <div class="row">
+        <input id="custMsg" type="text" class="wide" placeholder="メッセージ（任意）" />
+      </div>
+      <p class="muted">※ 送信先メールはページに表示されません。サーバー側（GAS）で安全に設定されます。</p>
+      <div id="sendStatus" class="muted"></div>
+      <div class="actions">
+        <button class="btn" id="cancelSend">キャンセル</button>
+        <button class="btn success" id="sendBtn">送信する</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* 1) Set your webhook here later (GAS Web App URL ending in /exec) */
+    const WEBHOOK_URL = "YOUR_WEBHOOK_HERE";
+
+    /* price tables */
+    const ROOM_PRICES = {
+      "1R/1K": 13000,
+      "1DK": 20000,
+      "1LDK": 25000,
+      "2LDK": 30000,
+      "3LDK": 40000
+    };
+    const AC_FIRST = 11000;
+    const AC_ADD = 5500;
+    const WAX_PER_M2 = 220;
+    const WAX_MIN = 1650;
+    const SCREEN_PER = 2200;
+
+    const acCountEl = document.getElementById('acCount');
+    const waxAreaEl = document.getElementById('waxArea');
+    const screenCountEl = document.getElementById('screenCount');
+    const noteEl = document.getElementById('note');
+    const estimateEl = document.getElementById('estimate');
+    const copyTextEl = document.getElementById('copyText');
+
+    const roomsEl = document.getElementById('rooms');
+    let selectedRoom = "1DK"; // default
+
+    /* UI buttons */
+    const hcBtn = document.getElementById('hcBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const contactBtn = document.getElementById('contactBtn');
+
+    /* modal elements */
+    const modal = document.getElementById('modal');
+    const cancelSend = document.getElementById('cancelSend');
+    const sendBtn = document.getElementById('sendBtn');
+    const sendStatus = document.getElementById('sendStatus');
+    const custName = document.getElementById('custName');
+    const custEmail = document.getElementById('custEmail');
+    const custMsg = document.getElementById('custMsg');
+
+    /* radio behavior for rooms */
+    roomsEl.querySelectorAll('.radio').forEach(r => {
+      r.addEventListener('click', () => setRoom(r.dataset.key));
+      r.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRoom(r.dataset.key); }
+      });
+    });
+    function setRoom(key){
+      selectedRoom = key;
+      roomsEl.querySelectorAll('.radio').forEach(x => {
+        x.setAttribute('aria-checked', x.dataset.key === key ? 'true' : 'false');
+      });
+      render();
+    }
+
+    /* compute costs */
+    function compute(){
+      const acCount = Math.max(0, parseInt(acCountEl.value || "0", 10));
+      const waxArea = Math.max(0, parseInt(waxAreaEl.value || "0", 10));
+      const screenCount = Math.max(0, parseInt(screenCountEl.value || "0", 10));
+      const note = (noteEl.value || "").trim();
+
+      let ac = 0;
+      if(acCount > 0){
+        ac = AC_FIRST + Math.max(0, acCount - 1) * AC_ADD;
+      }
+
+      const room = ROOM_PRICES[selectedRoom] || 0;
+
+      let wax = 0;
+      if(waxArea > 0){
+        wax = Math.max(WAX_MIN, waxArea * WAX_PER_M2);
+      }
+
+      const screen = screenCount * SCREEN_PER;
+
+      const items = [];
+      if(acCount>0) items.push({label:`❄️ エアコン掃除（${acCount}台）`, price: ac});
+      if(selectedRoom) items.push({label:`🧹 部屋掃除（${selectedRoom}）`, price: room});
+      if(waxArea>0) items.push({label:`✨ ワックス（${waxArea}m²）`, price: wax});
+      if(screenCount>0) items.push({label:`🪟 網戸交換（${screenCount}枚）`, price: screen});
+
+      const total = items.reduce((s, x)=>s+x.price, 0);
+
+      return { acCount, waxArea, screenCount, note, items, total };
+    }
+
+    /* render estimate panel + copy text */
+    function render(){
+      const { items, total } = compute();
+      estimateEl.innerHTML = '';
+
+      if(items.length === 0){
+        estimateEl.innerHTML = '<p class="muted">メニューから項目を入力／選択してください。</p>';
+      } else {
+        items.forEach(it => {
+          const row = document.createElement('div');
+          row.className = 'line';
+          row.innerHTML = `<div>${it.label}</div><div>¥${it.price.toLocaleString()}</div>`;
+          estimateEl.appendChild(row);
+        });
+        const totalRow = document.createElement('div');
+        totalRow.className = 'line total';
+        totalRow.innerHTML = `<strong>合計</strong><strong>¥${total.toLocaleString()}</strong>`;
+        estimateEl.appendChild(totalRow);
+        const foot = document.createElement('div');
+        foot.className = 'muted';
+        foot.style.marginTop = '6px';
+        foot.textContent = '※ 税込・駐車場費込みの目安金額です。状況により金額が変動する場合があります。';
+        estimateEl.appendChild(foot);
+      }
+
+      copyTextEl.value = buildText();
+    }
+
+    function buildText(){
+      const { acCount, waxArea, screenCount, note, items, total } = compute();
+      const lines = [];
+      lines.push('【STF Clean おそうじ見積り】');
+      if(items.length === 0){
+        lines.push('（項目未選択）');
+      } else {
+        items.forEach(it => lines.push(`・${it.label}：¥${it.price.toLocaleString()}`));
+        lines.push(`———`);
+        lines.push(`合計：¥${total.toLocaleString()}（税込・駐車場費込み）`);
+      }
+      if(note){ lines.push(`ご要望：${note}`); }
+      const now = new Date();
+      lines.push(`作成：${now.toLocaleString('ja-JP')}`);
+      return lines.join('\n');
+    }
+
+    /* controls */
+    [acCountEl, waxAreaEl, screenCountEl, noteEl].forEach(el => {
+      el.addEventListener('input', render);
+      el.addEventListener('change', render);
+    });
+
+    /* high-contrast */
+    hcBtn.addEventListener('click', () => {
+      const on = document.body.classList.toggle('hc');
+      hcBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      hcBtn.textContent = on ? '視認性アップ（ON）' : '視認性アップ';
+    });
+
+    /* copy */
+    copyBtn.addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(copyTextEl.value);
+        copyBtn.textContent = 'コピーしました ✅';
+        setTimeout(()=>copyBtn.textContent='見積りテキストをコピー', 1600);
+      }catch(e){
+        copyTextEl.select(); document.execCommand('copy');
+        copyBtn.textContent = 'コピーしました ✅';
+        setTimeout(()=>copyBtn.textContent='見積りテキストをコピー', 1600);
+      }
+    });
+
+    /* contact flow (modal) */
+    function openModal(){ modal.style.display='flex'; modal.setAttribute('aria-hidden','false'); }
+    function closeModal(){ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); sendStatus.textContent=''; }
+    contactBtn.addEventListener('click', () => {
+      // require at least one item before contacting
+      const data = compute();
+      if(data.items.length === 0){
+        alert('まずはメニューを入力／選択してください。');
+        return;
+      }
+      openModal();
+    });
+    cancelSend.addEventListener('click', closeModal);
+
+    sendBtn.addEventListener('click', async () => {
+      const payload = {
+        estimate_text: buildText(),
+        selections: compute(),
+        customer: {
+          name: custName.value.trim(),
+          email: custEmail.value.trim(),
+          message: custMsg.value.trim()
+        }
+      };
+
+      if(!WEBHOOK_URL || WEBHOOK_URL === "YOUR_WEBHOOK_HERE"){
+        sendStatus.textContent = '※ 送信先が未設定です（WEBHOOK_URL を後で設定してください）';
+        return;
+      }
+
+      sendStatus.textContent = '送信中…';
+      try{
+        await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          mode: 'no-cors', // server receives even if browser can’t read response
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        sendStatus.textContent = '✅ 送信しました。担当者からご連絡いたします。';
+        // optional: clear customer inputs
+        custName.value = ''; custEmail.value = ''; custMsg.value = '';
+        setTimeout(closeModal, 1200);
+      }catch(err){
+        sendStatus.textContent = '❌ 送信に失敗しました。ネットワークをご確認ください。';
+      }
+    });
+
+    // init
+    render();
+  </script>
+</body>
+</html>
