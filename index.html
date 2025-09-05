@@ -149,7 +149,7 @@
       max-width:560px; width:100%; background:#fff; border:4px solid var(--ink);
       box-shadow:8px 8px 0 var(--ink); border-radius:12px; padding:16px;
     }
-    .modal h3{ margin:0 0 8px; font-size:14px; color:var(--blue-2); }
+    .modal h3{ margin:0 0 8px; font-size:14px; color:#1d4ed8; }
     .modal .row{ margin-top:6px; }
     .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
 
@@ -182,13 +182,14 @@
           </div>
         </div>
 
-        <!-- 🧹 Room cleaning (pick ONE size) -->
-        <!-- EDIT HERE: You won’t change the cards here; change ROOM_PRICES in JS to update numbers -->
+        <!-- 🧹 Room cleaning (single choice, now with 「選択なし」) -->
+        <!-- EDIT PRICES in ROOM_PRICES (JS) -->
         <div class="card">
           <div class="section-title">🧹 部屋掃除（間取り）</div>
           <div id="rooms" class="radio-group" role="radiogroup" aria-label="部屋タイプ">
+            <div class="radio" role="radio" tabindex="0" data-key="none" aria-checked="true">選択なし<small>—</small></div>
             <div class="radio" role="radio" tabindex="0" data-key="1R/1K" aria-checked="false">1R/1K<small>¥13,000</small></div>
-            <div class="radio" role="radio" tabindex="0" data-key="1DK" aria-checked="true">1DK<small>¥20,000</small></div>
+            <div class="radio" role="radio" tabindex="0" data-key="1DK" aria-checked="false">1DK<small>¥20,000</small></div>
             <div class="radio" role="radio" tabindex="0" data-key="1LDK" aria-checked="false">1LDK<small>¥25,000</small></div>
             <div class="radio" role="radio" tabindex="0" data-key="2LDK" aria-checked="false">2LDK<small>¥30,000</small></div>
             <div class="radio" role="radio" tabindex="0" data-key="3LDK" aria-checked="false">3LDK<small>¥40,000</small></div>
@@ -197,7 +198,7 @@
         </div>
 
         <!-- ✨ Options -->
-        <!-- EDIT HERE: Labels stay; change prices for WAX/SCREEN in JS -->
+        <!-- EDIT PRICES for WAX/SCREEN in JS -->
         <div class="card">
           <div class="section-title">✨ 追加オプション</div>
           <div class="field row">
@@ -213,12 +214,13 @@
           </div>
         </div>
 
-        <!-- 🏠 Age bracket -->
-        <!-- EDIT HERE: Percentages are set in AGE_BRACKETS in JS -->
+        <!-- 🏠 Age bracket (single choice, now with 「選択なし」) -->
+        <!-- EDIT PERCENTAGES in AGE_BRACKETS (JS) -->
         <div class="card">
           <div class="section-title">🏠 築年数（5年刻みの割増・割引）</div>
           <div id="age" class="radio-group" role="radiogroup" aria-label="築年数">
-            <div class="radio" role="radio" tabindex="0" data-key="<5" aria-checked="true">〜5年未満<small>−10%</small></div>
+            <div class="radio" role="radio" tabindex="0" data-key="none" aria-checked="true">選択なし<small>—</small></div>
+            <div class="radio" role="radio" tabindex="0" data-key="<5" aria-checked="false">〜5年未満<small>−10%</small></div>
             <div class="radio" role="radio" tabindex="0" data-key="5-9" aria-checked="false">5〜9年<small>±0%</small></div>
             <div class="radio" role="radio" tabindex="0" data-key="10-14" aria-checked="false">10〜14年<small>+5%</small></div>
             <div class="radio" role="radio" tabindex="0" data-key="15-19" aria-checked="false">15〜19年<small>+10%</small></div>
@@ -242,7 +244,10 @@
     <section class="panel" aria-labelledby="estTitle">
       <h2 id="estTitle" class="section-title">📋 見積り</h2>
       <div id="estimate" class="estimate"></div>
-      <div class="muted">※ すべて <strong>税込・駐車場費込み</strong> の目安金額です。状況により金額が変動する場合があります。</div>
+      <div class="muted">
+        ※ すべて <strong>税込・駐車場費込み</strong> の目安金額です。状況により金額が変動する場合があります。<br/>
+        ※ <strong>最低料金 ¥1,500</strong> を下回る場合は、差額を加算いたします。
+      </div>
     </section>
   </div>
 
@@ -284,9 +289,6 @@
     const WEBHOOK_URL = "YOUR_WEBHOOK_HERE";
 
     // EDIT HERE: Room prices (TAX INCLUDED). Just change the numbers.
-    // Tips:
-    // - Keep the keys the same (e.g., "1DK") so the buttons match the prices.
-    // - Only change the right-hand numbers (yen).
     const ROOM_PRICES = {
       "1R/1K": 13000,
       "1DK": 20000,
@@ -296,12 +298,10 @@
     };
 
     // EDIT HERE: Aircon pricing (TAX INCLUDED)
-    // First unit price, and per additional unit (same property).
     const AC_FIRST = 11000;
     const AC_ADD = 5500;
 
     // EDIT HERE: Wax pricing (TAX INCLUDED)
-    // Per m² and minimum charge.
     const WAX_PER_M2 = 220;
     const WAX_MIN = 1650;
 
@@ -309,9 +309,8 @@
     const SCREEN_PER = 2200;
 
     // EDIT HERE: Age brackets as percentages (e.g., 0.10 = +10%, -0.10 = -10%)
-    // If you prefer FIXED yen per bracket later, I can convert this to amounts.
     const AGE_BRACKETS = {
-      "<5": -0.10, // less than 5 years old: discount 10%
+      "<5": -0.10,
       "5-9": 0.00,
       "10-14": 0.05,
       "15-19": 0.10,
@@ -319,6 +318,9 @@
       "25-29": 0.15,
       "30+": 0.20
     };
+
+    // EDIT HERE: Overall minimum charge (tax-included)
+    const OVERALL_MIN_TOTAL = 1500;
 
     /* ===============================================================
        ELEMENT HOOKS (you don't need to edit these)
@@ -346,40 +348,48 @@
     const custMsg = document.getElementById('custMsg');
 
     /* ===============================================================
-       STATE (current selections)
+       STATE (current selections) — start on 「選択なし」
        =============================================================== */
-    let selectedRoom = "1DK"; // default selection
-    let selectedAge = "<5"; // default selection
+    let selectedRoom = null; // none
+    let selectedAge = null; // none
 
     /* ===============================================================
-       ROOM & AGE CARD INTERACTIONS (click/keyboard)
+       ROOM & AGE CARD INTERACTIONS (click/keyboard) — with 「選択なし」
        =============================================================== */
-    // Clicking a room card selects it (and updates the UI)
+    // Room group
     roomsEl.querySelectorAll('.radio').forEach(r => {
-      r.addEventListener('click', () => setRoom(r.dataset.key));
+      r.addEventListener('click', () => chooseRoom(r.dataset.key));
       r.addEventListener('keydown', (e) => {
-        if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRoom(r.dataset.key); }
+        if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseRoom(r.dataset.key); }
       });
     });
-    function setRoom(key){
-      selectedRoom = key;
+    function chooseRoom(key){
+      if(key === 'none'){ selectedRoom = null; }
+      else if(selectedRoom === key){ selectedRoom = null; } // tapping same card toggles to none
+      else { selectedRoom = key; }
+
       roomsEl.querySelectorAll('.radio').forEach(x => {
-        x.setAttribute('aria-checked', x.dataset.key === key ? 'true' : 'false');
+        const isChecked = (selectedRoom === null && x.dataset.key === 'none') || (x.dataset.key === selectedRoom);
+        x.setAttribute('aria-checked', isChecked ? 'true' : 'false');
       });
       render();
     }
 
-    // Clicking an age bracket selects it (and updates the UI)
+    // Age group
     ageEl.querySelectorAll('.radio').forEach(r => {
-      r.addEventListener('click', () => setAge(r.dataset.key));
+      r.addEventListener('click', () => chooseAge(r.dataset.key));
       r.addEventListener('keydown', (e) => {
-        if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setAge(r.dataset.key); }
+        if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseAge(r.dataset.key); }
       });
     });
-    function setAge(key){
-      selectedAge = key;
+    function chooseAge(key){
+      if(key === 'none'){ selectedAge = null; }
+      else if(selectedAge === key){ selectedAge = null; }
+      else { selectedAge = key; }
+
       ageEl.querySelectorAll('.radio').forEach(x => {
-        x.setAttribute('aria-checked', x.dataset.key === key ? 'true' : 'false');
+        const isChecked = (selectedAge === null && x.dataset.key === 'none') || (x.dataset.key === selectedAge);
+        x.setAttribute('aria-checked', isChecked ? 'true' : 'false');
       });
       render();
     }
@@ -400,8 +410,8 @@
         ac = AC_FIRST + Math.max(0, acCount - 1) * AC_ADD;
       }
 
-      // Room base price from the selected key
-      const room = ROOM_PRICES[selectedRoom] || 0;
+      // Room base price from the selected key (or 0 if none)
+      const room = selectedRoom ? (ROOM_PRICES[selectedRoom] || 0) : 0;
 
       // Wax: m² × rate, but never below the minimum
       let wax = 0;
@@ -422,21 +432,28 @@
       // Subtotal
       const subtotal = items.reduce((s, x)=>s+x.price, 0);
 
-      // Age adjustment as a % of subtotal (can be negative for discount)
-      const pct = AGE_BRACKETS[selectedAge] ?? 0;
+      // Age adjustment as a % of subtotal only if an age bracket is chosen
+      const pct = selectedAge ? (AGE_BRACKETS[selectedAge] ?? 0) : 0;
       const ageAdj = Math.round(subtotal * pct);
 
-      // Final total (税込み・駐車場費込みにしています)
-      const total = subtotal + ageAdj;
+      // Total before min-charge
+      const preMinTotal = subtotal + ageAdj;
 
-      return { items, subtotal, agePct:pct, ageAdj, total, note };
+      // Enforce overall minimum if customer selected something
+      const needsMin = items.length > 0 && preMinTotal > 0 && preMinTotal < OVERALL_MIN_TOTAL;
+      const minAdj = needsMin ? (OVERALL_MIN_TOTAL - preMinTotal) : 0;
+
+      // Final total (税込み・駐車場費込み)
+      const total = preMinTotal + minAdj;
+
+      return { items, subtotal, agePct:pct, ageAdj, minAdj, total, note, hasAge: !!selectedAge };
     }
 
     /* ===============================================================
        RENDER (draw the estimate list + footer total)
        =============================================================== */
     function render(){
-      const { items, subtotal, agePct, ageAdj, total } = compute();
+      const { items, subtotal, agePct, ageAdj, minAdj, total, hasAge } = compute();
       estimateEl.innerHTML = '';
 
       if(items.length === 0){
@@ -457,13 +474,23 @@
         subRow.innerHTML = `<div>小計</div><div>¥${subtotal.toLocaleString()}</div>`;
         estimateEl.appendChild(subRow);
 
-        // Age adjustment line (shows + or −)
-        const sign = ageAdj >= 0 ? '+' : '−';
-        const pctText = (agePct * 100) >= 0 ? `+${(agePct*100).toFixed(0)}%` : `${(agePct*100).toFixed(0)}%`;
-        const adjRow = document.createElement('div');
-        adjRow.className = 'line';
-        adjRow.innerHTML = `<div>🏠 築年数調整（${pctText}）</div><div>${sign}¥${Math.abs(ageAdj).toLocaleString()}</div>`;
-        estimateEl.appendChild(adjRow);
+        // Age adjustment line appears ONLY when an age bracket is selected
+        if(hasAge){
+          const sign = ageAdj >= 0 ? '+' : '−';
+          const pctText = (agePct * 100) >= 0 ? `+${(agePct*100).toFixed(0)}%` : `${(agePct*100).toFixed(0)}%`;
+          const adjRow = document.createElement('div');
+          adjRow.className = 'line';
+          adjRow.innerHTML = `<div>🏠 築年数調整（${pctText}）</div><div>${sign}¥${Math.abs(ageAdj).toLocaleString()}</div>`;
+          estimateEl.appendChild(adjRow);
+        }
+
+        // Minimum charge line appears ONLY when applied
+        if(minAdj > 0){
+          const minRow = document.createElement('div');
+          minRow.className = 'line';
+          minRow.innerHTML = `<div>🔖 最低料金調整（最低 ¥${OVERALL_MIN_TOTAL.toLocaleString()}）</div><div>+¥${minAdj.toLocaleString()}</div>`;
+          estimateEl.appendChild(minRow);
+        }
 
         // FINAL total line — clearly marked as tax & parking included
         const totalRow = document.createElement('div');
@@ -484,6 +511,16 @@
     function openModal(){ modal.style.display='flex'; modal.setAttribute('aria-hidden','false'); }
     function closeModal(){ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); sendStatus.textContent=''; }
 
+    // Allow closing by clicking the dark backdrop (outside the modal box)
+    modal.addEventListener('click', (e) => {
+      if(e.target === modal){ closeModal(); }
+    });
+
+    // Allow closing with the Escape key
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false'){ closeModal(); }
+    });
+
     /* ===============================================================
        TOP + STICKY CONTACT BUTTONS (open the pop-up)
        =============================================================== */
@@ -500,17 +537,25 @@
       openModal();
     });
 
+    // Cancel button now works
+    cancelSend.addEventListener('click', closeModal);
+
     /* ===============================================================
        BUILD THE TEXT THAT GETS SENT (nice readable message)
        =============================================================== */
     function buildText(){
-      const { items, subtotal, agePct, ageAdj, total, note } = compute();
+      const { items, subtotal, agePct, ageAdj, minAdj, total, note, hasAge } = compute();
       const lines = [];
       lines.push('【STF Clean おそうじ見積り】');
       items.forEach(it => lines.push(`・${it.label}：¥${it.price.toLocaleString()}`));
       lines.push(`小計：¥${subtotal.toLocaleString()}`);
-      const pctText = (agePct*100) >= 0 ? `+${(agePct*100).toFixed(0)}%` : `${(agePct*100).toFixed(0)}%`;
-      lines.push(`築年数調整（${pctText}）：${ageAdj >= 0 ? '+' : '−'}¥${Math.abs(ageAdj).toLocaleString()}`);
+      if(hasAge){
+        const pctText = (agePct*100) >= 0 ? `+${(agePct*100).toFixed(0)}%` : `${(agePct*100).toFixed(0)}%`;
+        lines.push(`築年数調整（${pctText}）：${ageAdj >= 0 ? '+' : '−'}¥${Math.abs(ageAdj).toLocaleString()}`);
+      }
+      if(minAdj > 0){
+        lines.push(`最低料金調整（最低 ¥${OVERALL_MIN_TOTAL.toLocaleString()}）：+¥${minAdj.toLocaleString()}`);
+      }
       lines.push(`———`);
       lines.push(`合計（税込・駐車場費込み）：¥${total.toLocaleString()}`);
       if(note){ lines.push(`ご要望：${note}`); }
