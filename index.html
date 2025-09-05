@@ -4,36 +4,40 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>STF Clean | おそうじ見積り（ピクセル版）</title>
+
+  <!-- Pixel arcade font for the retro vibe -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
   <style>
+    /* ============ COLORS & BASIC THEME ============ */
     :root{
-      --ink:#0b0f14;
-      --bg:#f7f7ef;
-      --panel:#ffffff;
-      --blue:#1d4ed8;
-      --blue-2:#0b3ea8;
-      --gold:#fbbf24;
-      --grid:#e6e2cc;
-      --focus:#1d4ed8;
-      --success:#22c55e;
-      --danger:#ef4444;
-      --card:#ffffff;
-      --card-sel:#eef3ff;
-      --border:#c6d0f5;
-      --border-strong:#0b3ea8;
+      --ink:#0b0f14; /* black-ish lines / text */
+      --bg:#f7f7ef; /* paper background */
+      --panel:#ffffff; /* white panels */
+      --blue:#1d4ed8; /* primary blue */
+      --blue-2:#0b3ea8; /* darker blue for borders */
+      --gold:#fbbf24; /* accent gold */
+      --grid:#e6e2cc; /* background pixel grid */
+      --focus:#1d4ed8; /* keyboard focus outline */
+      --success:#22c55e; /* green for action buttons */
+      --card:#ffffff; /* option card fill */
+      --card-sel:#eef3ff; /* selected card fill (soft blue) */
+      --border:#c6d0f5; /* soft border for cards/inputs */
+      --border-strong:#0b3ea8; /* solid border when selected */
     }
 
+    /* ============ PAGE LAYOUT ============ */
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
     body{
       margin:0;
       background:
+        /* subtle pixel grid lines */
         repeating-linear-gradient(0deg, var(--grid) 0 2px, transparent 2px 24px),
         repeating-linear-gradient(90deg, var(--grid) 0 2px, transparent 2px 24px),
         var(--bg);
       color:var(--ink);
-      font-family:'Press Start 2P', monospace;
+      font-family:'Press Start 2P', monospace; /* retro font */
       line-height:1.6; letter-spacing:.4px;
     }
     .wrap{ max-width:840px; margin:0 auto; padding:16px 12px 96px; }
@@ -44,6 +48,7 @@
     }
 
     .tbar{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:12px; }
+
     .btn{
       appearance:none; border:none; background:var(--blue); color:#fff;
       padding:14px 16px; border:3px solid var(--blue-2);
@@ -53,8 +58,12 @@
     }
     .btn:active{ transform:translate(2px,2px); box-shadow:2px 2px 0 var(--blue-2); }
     .btn.success{ background:var(--success); border-color:#15803d; box-shadow:4px 4px 0 #15803d; }
+    .btn.sm{ padding:10px 12px; font-size:11px; }
 
-    .panel{ background:var(--panel); border:4px solid var(--ink); box-shadow:6px 6px 0 var(--ink); padding:14px; margin:16px 0; border-radius:12px; }
+    .panel{
+      background:var(--panel); border:4px solid var(--ink);
+      box-shadow:6px 6px 0 var(--ink); padding:14px; margin:16px 0; border-radius:12px;
+    }
     .section-title{ display:flex; align-items:center; gap:8px; margin:0 0 10px; font-size:14px; color:var(--blue-2); }
 
     .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
@@ -81,6 +90,7 @@
     }
     input.wide{ width:100%; }
 
+    /* ============ SELECTION CARDS ============ */
     .radio-group{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
     @media (max-width:480px){ .radio-group{ grid-template-columns:repeat(2,1fr); } }
     .radio{
@@ -98,6 +108,7 @@
       box-shadow:0 0 0 3px rgba(13,61,168,.15) inset;
     }
     .radio[aria-checked="true"]::after{
+      /* big friendly check mark in the corner */
       content:"✔";
       position:absolute; top:8px; right:10px;
       background:var(--blue); color:#fff;
@@ -107,35 +118,61 @@
       box-shadow:2px 2px 0 var(--blue-2);
     }
 
+    /* ============ ESTIMATE LIST ============ */
     .estimate{ font-size:12px; }
     .line{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid #d6defa; }
     .total{ font-size:16px; padding-top:10px; }
     .muted{ font-size:11px; opacity:.8; margin-top:6px; }
 
+    /* ============ STICKY TOTAL BAR (always visible at bottom) ============ */
+    .sticky{
+      position: sticky;
+      bottom: 0;
+      background:#fff;
+      border-top:4px solid var(--ink);
+      box-shadow:0 -6px 0 var(--ink);
+      padding:10px 12px;
+      display:none; /* JS shows it when there are items */
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      z-index:15;
+    }
+    .sticky .sum{ font-size:14px; }
+
+    /* ============ MODAL (pop-up contact form) ============ */
     .modal-backdrop{
       position:fixed; inset:0; background:rgba(0,0,0,.35); display:none;
       align-items:center; justify-content:center; padding:16px; z-index:20;
     }
-    .modal{ max-width:560px; width:100%; background:#fff; border:4px solid var(--ink); box-shadow:8px 8px 0 var(--ink); border-radius:12px; padding:16px; }
+    .modal{
+      max-width:560px; width:100%; background:#fff; border:4px solid var(--ink);
+      box-shadow:8px 8px 0 var(--ink); border-radius:12px; padding:16px;
+    }
     .modal h3{ margin:0 0 8px; font-size:14px; color:var(--blue-2); }
     .modal .row{ margin-top:6px; }
     .modal .actions{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+
+    :focus-visible{ outline:3px dashed var(--focus); outline-offset:3px; }
   </style>
 </head>
 <body>
+  <!-- ===================== PAGE HEADER ===================== -->
   <div class="wrap">
     <div class="title">🧼 STF Clean · おそうじ見積り</div>
 
+    <!-- Top bar: the main contact button (opens the pop-up) -->
     <div class="tbar">
       <button class="btn success" id="contactBtn">この内容で連絡する</button>
     </div>
 
-    <!-- Cleaning Menu -->
+    <!-- ===================== MAIN MENU (customer choices) ===================== -->
     <section class="panel" aria-labelledby="menuTitle">
       <h2 id="menuTitle" class="section-title">🧾 クリーニングメニュー</h2>
 
       <div class="grid">
-        <!-- Aircon -->
+        <!-- ❄️ Aircon cleaning -->
+        <!-- EDIT HERE: You rarely need to change the labels; prices are adjusted in JS below -->
         <div class="card">
           <div class="section-title">❄️ エアコン掃除</div>
           <div class="field row">
@@ -145,7 +182,8 @@
           </div>
         </div>
 
-        <!-- Room cleaning -->
+        <!-- 🧹 Room cleaning (pick ONE size) -->
+        <!-- EDIT HERE: You won’t change the cards here; change ROOM_PRICES in JS to update numbers -->
         <div class="card">
           <div class="section-title">🧹 部屋掃除（間取り）</div>
           <div id="rooms" class="radio-group" role="radiogroup" aria-label="部屋タイプ">
@@ -158,7 +196,8 @@
           <p class="label" style="opacity:.8;margin-top:8px;">※ 基本清掃の目安。汚れ具合やオプションにより変動する場合があります。</p>
         </div>
 
-        <!-- Options -->
+        <!-- ✨ Options -->
+        <!-- EDIT HERE: Labels stay; change prices for WAX/SCREEN in JS -->
         <div class="card">
           <div class="section-title">✨ 追加オプション</div>
           <div class="field row">
@@ -174,7 +213,8 @@
           </div>
         </div>
 
-        <!-- Age bracket -->
+        <!-- 🏠 Age bracket -->
+        <!-- EDIT HERE: Percentages are set in AGE_BRACKETS in JS -->
         <div class="card">
           <div class="section-title">🏠 築年数（5年刻みの割増・割引）</div>
           <div id="age" class="radio-group" role="radiogroup" aria-label="築年数">
@@ -189,7 +229,7 @@
           <p class="label" style="opacity:.8;margin-top:8px;">※ 築年数により作業難易度が変わるため、合計に割増・割引を適用します。</p>
         </div>
 
-        <!-- Notes -->
+        <!-- 📝 Notes from customer -->
         <div class="card">
           <div class="section-title">📝 ご要望</div>
           <input class="field wide" id="note" placeholder="例：水回り重点・ペットあり・日程の希望 など" />
@@ -198,18 +238,25 @@
       </div>
     </section>
 
-    <!-- Estimate output -->
+    <!-- ===================== ESTIMATE OUTPUT ===================== -->
     <section class="panel" aria-labelledby="estTitle">
       <h2 id="estTitle" class="section-title">📋 見積り</h2>
       <div id="estimate" class="estimate"></div>
-      <div class="muted">※ 税込・駐車場費込みの目安金額です。状況により金額が変動する場合があります。</div>
+      <div class="muted">※ すべて <strong>税込・駐車場費込み</strong> の目安金額です。状況により金額が変動する場合があります。</div>
     </section>
   </div>
 
-  <!-- Contact Modal -->
+  <!-- ===================== STICKY TOTAL BAR (always visible) ===================== -->
+  <div class="sticky" id="sticky">
+    <div class="sum">合計（<strong>税込・駐車場費込み</strong>）：<strong id="stickyTotal">¥0</strong></div>
+    <button class="btn success sm" id="stickyContact">この内容で連絡する</button>
+  </div>
+
+  <!-- ===================== CONTACT MODAL (pop-up) ===================== -->
   <div id="modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="modal">
       <h3>📩 この内容で連絡する</h3>
+      <!-- Customer can add optional contact info/message for you -->
       <div class="row">
         <input id="custName" type="text" class="wide" placeholder="お名前（任意）" />
       </div>
@@ -229,10 +276,17 @@
   </div>
 
   <script>
-    /* 1) Set your webhook later (GAS Web App URL ending in /exec) */
+    /* ===============================================================
+       JS SETTINGS (THIS IS WHERE YOU'LL EDIT PRICES LATER)
+       =============================================================== */
+
+    // EDIT HERE: When you're ready to receive emails, paste your GAS Web App URL (must end with /exec)
     const WEBHOOK_URL = "YOUR_WEBHOOK_HERE";
 
-    /* 2) Prices */
+    // EDIT HERE: Room prices (TAX INCLUDED). Just change the numbers.
+    // Tips:
+    // - Keep the keys the same (e.g., "1DK") so the buttons match the prices.
+    // - Only change the right-hand numbers (yen).
     const ROOM_PRICES = {
       "1R/1K": 13000,
       "1DK": 20000,
@@ -240,16 +294,24 @@
       "2LDK": 30000,
       "3LDK": 40000
     };
+
+    // EDIT HERE: Aircon pricing (TAX INCLUDED)
+    // First unit price, and per additional unit (same property).
     const AC_FIRST = 11000;
     const AC_ADD = 5500;
+
+    // EDIT HERE: Wax pricing (TAX INCLUDED)
+    // Per m² and minimum charge.
     const WAX_PER_M2 = 220;
     const WAX_MIN = 1650;
+
+    // EDIT HERE: Screen replacement (TAX INCLUDED) — per piece.
     const SCREEN_PER = 2200;
 
-    /* 3) Age brackets (edit percentages here) */
-    // percentage as decimals (e.g., -0.10 = -10%, 0.12 = +12%)
+    // EDIT HERE: Age brackets as percentages (e.g., 0.10 = +10%, -0.10 = -10%)
+    // If you prefer FIXED yen per bracket later, I can convert this to amounts.
     const AGE_BRACKETS = {
-      "<5": -0.10,
+      "<5": -0.10, // less than 5 years old: discount 10%
       "5-9": 0.00,
       "10-14": 0.05,
       "15-19": 0.10,
@@ -258,22 +320,23 @@
       "30+": 0.20
     };
 
+    /* ===============================================================
+       ELEMENT HOOKS (you don't need to edit these)
+       =============================================================== */
     const acCountEl = document.getElementById('acCount');
     const waxAreaEl = document.getElementById('waxArea');
-    const screenCountEl = document.getElementById('screenCount');
+    const screenCountEl= document.getElementById('screenCount');
     const noteEl = document.getElementById('note');
     const estimateEl = document.getElementById('estimate');
 
     const roomsEl = document.getElementById('rooms');
-    let selectedRoom = "1DK"; // default
-
     const ageEl = document.getElementById('age');
-    let selectedAge = "<5"; // default
 
-    /* UI buttons */
     const contactBtn = document.getElementById('contactBtn');
+    const sticky = document.getElementById('sticky');
+    const stickyTotal = document.getElementById('stickyTotal');
+    const stickyContact= document.getElementById('stickyContact');
 
-    /* modal elements */
     const modal = document.getElementById('modal');
     const cancelSend = document.getElementById('cancelSend');
     const sendBtn = document.getElementById('sendBtn');
@@ -282,7 +345,16 @@
     const custEmail = document.getElementById('custEmail');
     const custMsg = document.getElementById('custMsg');
 
-    /* room selection behavior */
+    /* ===============================================================
+       STATE (current selections)
+       =============================================================== */
+    let selectedRoom = "1DK"; // default selection
+    let selectedAge = "<5"; // default selection
+
+    /* ===============================================================
+       ROOM & AGE CARD INTERACTIONS (click/keyboard)
+       =============================================================== */
+    // Clicking a room card selects it (and updates the UI)
     roomsEl.querySelectorAll('.radio').forEach(r => {
       r.addEventListener('click', () => setRoom(r.dataset.key));
       r.addEventListener('keydown', (e) => {
@@ -297,7 +369,7 @@
       render();
     }
 
-    /* age selection behavior */
+    // Clicking an age bracket selects it (and updates the UI)
     ageEl.querySelectorAll('.radio').forEach(r => {
       r.addEventListener('click', () => setAge(r.dataset.key));
       r.addEventListener('keydown', (e) => {
@@ -312,47 +384,66 @@
       render();
     }
 
-    /* compute */
+    /* ===============================================================
+       PRICE CALCULATION (this is the “math” part)
+       =============================================================== */
     function compute(){
+      // Read numbers from inputs (never negative)
       const acCount = Math.max(0, parseInt(acCountEl.value || "0", 10));
       const waxArea = Math.max(0, parseInt(waxAreaEl.value || "0", 10));
-      const screenCount = Math.max(0, parseInt(screenCountEl.value || "0", 10));
+      const screenCount= Math.max(0, parseInt(screenCountEl.value|| "0", 10));
       const note = (noteEl.value || "").trim();
 
+      // Aircon: first unit full price, others are "additional" price
       let ac = 0;
       if(acCount > 0){
         ac = AC_FIRST + Math.max(0, acCount - 1) * AC_ADD;
       }
+
+      // Room base price from the selected key
       const room = ROOM_PRICES[selectedRoom] || 0;
 
+      // Wax: m² × rate, but never below the minimum
       let wax = 0;
       if(waxArea > 0){
         wax = Math.max(WAX_MIN, waxArea * WAX_PER_M2);
       }
+
+      // Screens: count × unit price
       const screen = screenCount * SCREEN_PER;
 
+      // Build line items to show (only include selected things)
       const items = [];
       if(acCount>0) items.push({label:`❄️ エアコン掃除（${acCount}台）`, price: ac});
       if(selectedRoom) items.push({label:`🧹 部屋掃除（${selectedRoom}）`, price: room});
       if(waxArea>0) items.push({label:`✨ ワックス（${waxArea}m²）`, price: wax});
       if(screenCount>0) items.push({label:`🪟 網戸交換（${screenCount}枚）`, price: screen});
 
+      // Subtotal
       const subtotal = items.reduce((s, x)=>s+x.price, 0);
 
+      // Age adjustment as a % of subtotal (can be negative for discount)
       const pct = AGE_BRACKETS[selectedAge] ?? 0;
       const ageAdj = Math.round(subtotal * pct);
+
+      // Final total (税込み・駐車場費込みにしています)
       const total = subtotal + ageAdj;
 
       return { items, subtotal, agePct:pct, ageAdj, total, note };
     }
 
-    /* render estimate list */
+    /* ===============================================================
+       RENDER (draw the estimate list + footer total)
+       =============================================================== */
     function render(){
       const { items, subtotal, agePct, ageAdj, total } = compute();
       estimateEl.innerHTML = '';
+
       if(items.length === 0){
+        // Nothing selected yet
         estimateEl.innerHTML = '<p class="label" style="opacity:.8;">メニューから項目を入力／選択してください。</p>';
       } else {
+        // Each line item
         items.forEach(it => {
           const row = document.createElement('div');
           row.className = 'line';
@@ -360,11 +451,13 @@
           estimateEl.appendChild(row);
         });
 
+        // Subtotal line
         const subRow = document.createElement('div');
         subRow.className = 'line';
         subRow.innerHTML = `<div>小計</div><div>¥${subtotal.toLocaleString()}</div>`;
         estimateEl.appendChild(subRow);
 
+        // Age adjustment line (shows + or −)
         const sign = ageAdj >= 0 ? '+' : '−';
         const pctText = (agePct * 100) >= 0 ? `+${(agePct*100).toFixed(0)}%` : `${(agePct*100).toFixed(0)}%`;
         const adjRow = document.createElement('div');
@@ -372,14 +465,44 @@
         adjRow.innerHTML = `<div>🏠 築年数調整（${pctText}）</div><div>${sign}¥${Math.abs(ageAdj).toLocaleString()}</div>`;
         estimateEl.appendChild(adjRow);
 
+        // FINAL total line — clearly marked as tax & parking included
         const totalRow = document.createElement('div');
         totalRow.className = 'line total';
-        totalRow.innerHTML = `<strong>合計</strong><strong>¥${total.toLocaleString()}</strong>`;
+        totalRow.innerHTML = `<strong>合計（<span style="font-weight:700">税込・駐車場費込み</span>）</strong><strong>¥${total.toLocaleString()}</strong>`;
         estimateEl.appendChild(totalRow);
       }
+
+      // Update the sticky footer (bottom bar)
+      const computed = compute();
+      stickyTotal.textContent = `¥${computed.total.toLocaleString()}`;
+      sticky.style.display = computed.items.length ? 'flex' : 'none';
     }
 
-    /* contact flow */
+    /* ===============================================================
+       MODAL HELPERS (open/close)
+       =============================================================== */
+    function openModal(){ modal.style.display='flex'; modal.setAttribute('aria-hidden','false'); }
+    function closeModal(){ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); sendStatus.textContent=''; }
+
+    /* ===============================================================
+       TOP + STICKY CONTACT BUTTONS (open the pop-up)
+       =============================================================== */
+    contactBtn.addEventListener('click', () => {
+      if(compute().items.length === 0){
+        alert('まずはメニューを入力／選択してください。');
+        return;
+      }
+      openModal();
+    });
+
+    stickyContact.addEventListener('click', () => {
+      if(compute().items.length === 0){ return; }
+      openModal();
+    });
+
+    /* ===============================================================
+       BUILD THE TEXT THAT GETS SENT (nice readable message)
+       =============================================================== */
     function buildText(){
       const { items, subtotal, agePct, ageAdj, total, note } = compute();
       const lines = [];
@@ -389,35 +512,16 @@
       const pctText = (agePct*100) >= 0 ? `+${(agePct*100).toFixed(0)}%` : `${(agePct*100).toFixed(0)}%`;
       lines.push(`築年数調整（${pctText}）：${ageAdj >= 0 ? '+' : '−'}¥${Math.abs(ageAdj).toLocaleString()}`);
       lines.push(`———`);
-      lines.push(`合計：¥${total.toLocaleString()}（税込・駐車場費込み）`);
+      lines.push(`合計（税込・駐車場費込み）：¥${total.toLocaleString()}`);
       if(note){ lines.push(`ご要望：${note}`); }
       const now = new Date();
       lines.push(`作成：${now.toLocaleString('ja-JP')}`);
       return lines.join('\n');
     }
 
-    const contactBtn = document.getElementById('contactBtn');
-    const modal = document.getElementById('modal');
-    const cancelSend = document.getElementById('cancelSend');
-    const sendBtn = document.getElementById('sendBtn');
-    const sendStatus = document.getElementById('sendStatus');
-    const custName = document.getElementById('custName');
-    const custEmail = document.getElementById('custEmail');
-    const custMsg = document.getElementById('custMsg');
-
-    function openModal(){ modal.style.display='flex'; modal.setAttribute('aria-hidden','false'); }
-    function closeModal(){ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); sendStatus.textContent=''; }
-
-    contactBtn.addEventListener('click', () => {
-      const data = compute();
-      if(data.items.length === 0){
-        alert('まずはメニューを入力／選択してください。');
-        return;
-      }
-      openModal();
-    });
-    cancelSend.addEventListener('click', closeModal);
-
+    /* ===============================================================
+       SEND BUTTON (actually posts to your hidden webhook later)
+       =============================================================== */
     sendBtn.addEventListener('click', async () => {
       const payload = {
         estimate_text: buildText(),
@@ -425,10 +529,11 @@
         customer: {
           name: (custName.value || '').trim(),
           email: (custEmail.value || '').trim(),
-          message: (custMsg.value || '').trim()
+          message:(custMsg.value || '').trim()
         }
       };
       if(!WEBHOOK_URL || WEBHOOK_URL === "YOUR_WEBHOOK_HERE"){
+        // Friendly reminder if you haven't set the webhook yet
         sendStatus.textContent = '※ 送信先が未設定です（WEBHOOK_URL を後で設定してください）';
         return;
       }
@@ -436,7 +541,7 @@
       try{
         await fetch(WEBHOOK_URL, {
           method: 'POST',
-          mode: 'no-cors',
+          mode: 'no-cors', // server receives even if the browser can’t read a response
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
@@ -447,15 +552,14 @@
       }
     });
 
-    // init + live updates
-    function bindInputs(){
-      [acCountEl, waxAreaEl, screenCountEl, noteEl].forEach(el => {
-        el.addEventListener('input', render);
-        el.addEventListener('change', render);
-      });
-    }
-    bindInputs();
-    render();
+    /* ===============================================================
+       LIVE UPDATES: whenever inputs change, re-calc and re-render
+       =============================================================== */
+    [acCountEl, waxAreaEl, screenCountEl, noteEl].forEach(el => {
+      el.addEventListener('input', render);
+      el.addEventListener('change', render);
+    });
+    render(); // initial draw on page load
   </script>
 </body>
 </html>
